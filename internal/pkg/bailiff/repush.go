@@ -46,7 +46,7 @@ func (s *ShellRepusher) Clone(ctx context.Context, repoURL string) error {
 		".",
 	)
 	cmd.Dir = s.workdir
-	cmd.Env = append(cmd.Env, "GIT_SSH_COMMAND='ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new'")
+	cmd.Env = append(cmd.Env, "GIT_SSH_COMMAND=\"ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new\"")
 
 	doneC := make(chan struct{})
 	if err := s.logOutput(cmd, doneC); err != nil {
