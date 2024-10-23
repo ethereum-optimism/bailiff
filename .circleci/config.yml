@@ -68,6 +68,8 @@ jobs:
     executor:
       name: go/default
       tag: '1.23.2'
+    machine: true
+    resource_class: medium
     steps:
       - gcp-cli/install
       - gcp-oidc-authenticate
