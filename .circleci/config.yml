@@ -82,7 +82,7 @@ jobs:
       - run:
           name: Run goreleaser
           command: |
-            goreleaser release --clean -f ./<<parameters.module>>/<<parameters.filename>>
+            goreleaser release --clean -f ./.goreleaser.yml
 
 workflows:
   main:
