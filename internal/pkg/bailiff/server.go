@@ -38,6 +38,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		)
 	}()
 
+	if r.URL.Path == "/healthz" {
+		writeStatus(w, http.StatusOK, "ok")
+		return
+	}
+
 	payload, err := github.ValidatePayload(r, []byte(s.webhookSecret))
 	if err != nil {
 		l.Error("payload validation failed", "error", err)
