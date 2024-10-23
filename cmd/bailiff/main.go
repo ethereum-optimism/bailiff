@@ -122,7 +122,7 @@ func main() {
 		ctx, cancel := context.WithCancel(cliCtx.Context)
 		defer cancel()
 
-		go wl.SyncPeriodically(ctx, time.Minute)
+		go wl.SyncPeriodically(ctx, l, time.Minute)
 
 		metricsCfg := opmetrics.ReadCLIConfig(cliCtx)
 		if metricsCfg.Enabled {

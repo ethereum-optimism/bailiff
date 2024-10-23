@@ -43,6 +43,8 @@ func (m *TeamWhitelist) SyncPeriodically(ctx context.Context, lgr log.Logger, in
 	for {
 		if err := m.sync(ctx); err != nil {
 			lgr.Error("failed to sync whitelist", "error", err)
+		} else {
+			lgr.Info("whitelist synced")
 		}
 
 		select {
