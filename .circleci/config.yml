@@ -78,7 +78,7 @@ jobs:
       - go/install-goreleaser
       - checkout
       - go/goreleaser-release:
-          project-path: /path/to/Go/project
+          project-path: .
           publish-release: true
           validate-yaml: true
 
