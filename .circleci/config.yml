@@ -68,8 +68,8 @@ jobs:
     executor:
       name: go/default
       tag: '1.23.2'
-    machine: true
-    resource_class: medium
+    machine:
+      image: ubuntu-2204:2024.05.1
     steps:
       - gcp-cli/install
       - gcp-oidc-authenticate
