@@ -75,12 +75,14 @@ jobs:
           name: Configure Docker
           command: |
             gcloud auth configure-docker us-docker.pkg.dev
-      - go/install-goreleaser
       - checkout
-      - go/goreleaser-release:
-          project-path: .
-          publish-release: true
-          validate-yaml: true
+      - run:
+          name: Install goreleaser
+          command: go install github.com/goreleaser/goreleaser/v2@latest
+      - run:
+          name: Run goreleaser
+          command: |
+            goreleaser release --clean -f ./<<parameters.module>>/<<parameters.filename>>
 
 workflows:
   main:
