@@ -32,7 +32,7 @@ var (
 	ErrMismatchedSHA    = errors.New("mismatched SHA")
 )
 
-var expectedErrors = []error{
+var handlerExpectedErrors = []error{
 	ErrNoIssue,
 	ErrNotPullRequest,
 	ErrNotCreation,
@@ -71,7 +71,8 @@ func NewEventHandler(gh *github.Client, whitelist Whitelister, config *Config, w
 
 func (h *EventHandler) ServeOnIssueComment(ctx context.Context, e *github.IssueCommentEvent) error {
 	err := h.OnIssueComment(ctx, e)
-	if slices.Contains(expectedErrors, err) {
+	RecordProcessedPR(err)
+	if slices.Contains(handlerExpectedErrors, err) {
 		return nil
 	}
 	return err

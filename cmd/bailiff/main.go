@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
 	"github.com/ethereum-optimism/optimism/op-service/httputil"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
 	"github.com/google/go-github/v66/github"
 	"github.com/urfave/cli/v2"
 )
@@ -61,12 +62,12 @@ var (
 	}
 )
 
-var GlobalFlags = append([]cli.Flag{
+var GlobalFlags = []cli.Flag{
 	ConfigPathFlag,
 	WebhookSecretFlag,
 	GithubTokenFlag,
 	PrivateKeyFileFlag,
-}, oplog.CLIFlags(EnvVarPrefix)...)
+}
 
 func main() {
 	app := cli.NewApp()
@@ -118,22 +119,42 @@ func main() {
 
 		ctx, cancel := context.WithCancel(cliCtx.Context)
 		defer cancel()
+
+		metricsCfg := opmetrics.ReadCLIConfig(cliCtx)
+		if metricsCfg.Enabled {
+			metricsSrv, err := opmetrics.StartServer(bailiff.MetricsRegistry, metricsCfg.ListenAddr, metricsCfg.ListenPort)
+			if err != nil {
+				return fmt.Errorf("failed to start metrics server: %w", err)
+			}
+			defer func() {
+				if err := metricsSrv.Stop(context.Background()); err != nil {
+					l.Error("failed to stop metrics server", "err", err)
+				}
+			}()
+
+			l.Info("metrics server is running", "addr", metricsCfg.ListenAddr)
+		}
+
 		httpSrv, err := httputil.StartHTTPServer(cfg.ListenAddr, srv)
 		if err != nil {
 			return fmt.Errorf("failed to start HTTP server: %w", err)
 		}
 
 		defer func() {
-			if err := httpSrv.Stop(ctx); err != nil {
+			if err := httpSrv.Stop(context.Background()); err != nil {
 				l.Error("failed to stop DA server", "err", err)
 			}
 		}()
 
 		l.Info("bailiff is running", "addr", cfg.ListenAddr)
-
 		return ctxinterrupt.Wait(ctx)
 	}
 	if err := app.Run(os.Args); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Application failed: %v\n", err)
 	}
+}
+
+func init() {
+	GlobalFlags = append(GlobalFlags, oplog.CLIFlags(EnvVarPrefix)...)
+	GlobalFlags = append(GlobalFlags, opmetrics.CLIFlags(EnvVarPrefix)...)
 }

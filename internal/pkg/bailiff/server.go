@@ -57,6 +57,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	RecordReceivedWebhook(github.WebHookType(r))
+
 	switch e := event.(type) {
 	case *github.IssueCommentEvent:
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -76,6 +78,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeStatus(w http.ResponseWriter, code int, msg string) {
+	RecordHTTPRequest(code)
 	w.WriteHeader(code)
 	_, _ = w.Write([]byte(msg))
 }
