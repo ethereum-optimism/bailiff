@@ -87,7 +87,7 @@ workflows:
 
   release:
     jobs:
-      - go-release:
+      - release:
           filters:
             tags:
               only: /^v[0-9]+/
