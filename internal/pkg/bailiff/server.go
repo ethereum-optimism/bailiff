@@ -38,7 +38,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		)
 	}()
 
-	if r.URL.Path == "/healthz" {
+	if r.Method == "GET" && r.URL.Path == "/healthz" {
 		writeStatus(w, http.StatusOK, "ok")
 		return
 	}
