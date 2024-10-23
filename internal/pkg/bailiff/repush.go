@@ -38,6 +38,7 @@ func (s *ShellRepusher) Clone(ctx context.Context, repoURL string) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
+	env := fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new", s.privateKeyFile)
 	cmd := exec.CommandContext(
 		ctx,
 		"git",
@@ -46,7 +47,7 @@ func (s *ShellRepusher) Clone(ctx context.Context, repoURL string) error {
 		".",
 	)
 	cmd.Dir = s.workdir
-	cmd.Env = append(cmd.Env, "GIT_SSH_COMMAND=ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new")
+	cmd.Env = append(cmd.Env, env)
 
 	doneC := make(chan struct{})
 	if err := s.logOutput(cmd, doneC); err != nil {
