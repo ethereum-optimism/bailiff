@@ -16,7 +16,7 @@ echo "Upstream branch: $UPSTREAM_BRANCH"
 echo "Requested sha: $REQUESTED_SHA"
 echo "PK file: $PRIVATE_KEY_FILE"
 
-export GIT_SSH_COMMAND="ssh -i '$PRIVATE_KEY_FILE' -o IdentitiesOnly=yes"
+export GIT_SSH_COMMAND="ssh -i '$PRIVATE_KEY_FILE' -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
 
 echo "Removing old remote..."
 git remote remove fork-to-push || true
