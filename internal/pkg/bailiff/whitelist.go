@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/google/go-github/v66/github"
 )
 
@@ -35,19 +36,18 @@ func (m *TeamWhitelist) Whitelisted(login string) bool {
 	return m.logins[login]
 }
 
-func (m *TeamWhitelist) SyncPeriodically(ctx context.Context, interval time.Duration) error {
+func (m *TeamWhitelist) SyncPeriodically(ctx context.Context, lgr log.Logger, interval time.Duration) error {
 	tick := time.NewTicker(interval)
-
-	if err := m.sync(ctx); err != nil {
-		return err
-	}
+	defer tick.Stop()
 
 	for {
+		if err := m.sync(ctx); err != nil {
+			lgr.Error("failed to sync whitelist", "error", err)
+		}
+
 		select {
 		case <-tick.C:
-			if err := m.sync(ctx); err != nil {
-				return err
-			}
+			continue
 		case <-ctx.Done():
 			return ctx.Err()
 		}

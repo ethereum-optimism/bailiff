@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/cliapp"
@@ -108,6 +109,7 @@ func main() {
 
 		gh := github.NewClient(http.DefaultClient).WithAuthToken(envCfg.GitHubToken)
 		wl := bailiff.NewTeamWhitelist(cfg.Org, cfg.AdminTeams, gh)
+
 		repusher := bailiff.NewShellRepusher(l.New("module", "shell-repusher"), workdir, envCfg.PrivateKeyFile)
 		eh := bailiff.NewEventHandler(gh, wl, cfg, workdir, l, repusher)
 		srv := bailiff.NewServer(l, envCfg.WebhookSecret, eh)
@@ -119,6 +121,8 @@ func main() {
 
 		ctx, cancel := context.WithCancel(cliCtx.Context)
 		defer cancel()
+
+		go wl.SyncPeriodically(ctx, time.Minute)
 
 		metricsCfg := opmetrics.ReadCLIConfig(cliCtx)
 		if metricsCfg.Enabled {
