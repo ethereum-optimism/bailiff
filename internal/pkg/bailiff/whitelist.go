@@ -71,7 +71,9 @@ func (m *TeamWhitelist) sync(ctx context.Context) error {
 }
 
 func (m *TeamWhitelist) syncTeam(ctx context.Context, team string, loginsSet map[string]bool) error {
-	members, _, err := m.github.Teams.ListTeamMembersBySlug(ctx, m.org, team, nil)
+	members, _, err := m.github.Teams.ListTeamMembersBySlug(ctx, m.org, team, &github.TeamListTeamMembersOptions{
+		ListOptions: github.ListOptions{PerPage: 100},
+	})
 	if err != nil {
 		return fmt.Errorf("failed to list team members: %w", err)
 	}
