@@ -8,6 +8,7 @@ import (
 	"io"
 	"os/exec"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -15,15 +16,113 @@ import (
 //go:embed repush.sh
 var scriptSrc string
 
+const maxAsyncRepushes = 10
+
+type Repusher interface {
+	Repush(ctx context.Context, forkRepo, srcBranch, upstreamBranch, requestedSHA string) error
+}
+
+type repushReq struct {
+	forkRepo       string
+	srcBranch      string
+	upstreamBranch string
+	requestedSHA   string
+}
+
+type AsnycRepusher struct {
+	lgr      log.Logger
+	queue    []repushReq
+	repusher Repusher
+	mtx      sync.Mutex
+	doneC    chan struct{}
+	closed   bool
+	workers  int
+}
+
+func NewAsyncRepusher(lgr log.Logger, repusher Repusher) *AsnycRepusher {
+	return &AsnycRepusher{
+		lgr:      lgr,
+		repusher: repusher,
+		doneC:    make(chan struct{}),
+	}
+}
+
+func (a *AsnycRepusher) Repush(ctx context.Context, forkRepo, srcBranch, upstreamBranch, requestedSHA string) error {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+
+	if a.closed {
+		return fmt.Errorf("repusher is closed")
+	}
+
+	if len(a.queue) >= maxAsyncRepushes {
+		return fmt.Errorf("queue is full")
+	}
+
+	a.queue = append(a.queue, repushReq{
+		forkRepo:       forkRepo,
+		srcBranch:      srcBranch,
+		upstreamBranch: upstreamBranch,
+		requestedSHA:   requestedSHA,
+	})
+
+	a.workers++
+	go a.processQueue()
+
+	return nil
+}
+
+func (a *AsnycRepusher) processQueue() {
+	a.mtx.Lock()
+	head := a.queue[0]
+	a.queue = a.queue[1:]
+	a.mtx.Unlock()
+
+	defer func() {
+		a.mtx.Lock()
+		a.workers--
+		if a.workers == 0 && a.closed {
+			a.lgr.Info("all workers finished, shutting down")
+			close(a.doneC)
+		}
+		a.mtx.Unlock()
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	lgr := a.lgr.New(
+		"forkRepo", head.forkRepo,
+		"srcBranch", head.srcBranch,
+		"upstreamBranch", head.upstreamBranch,
+		"requestedSHA", head.requestedSHA,
+	)
+
+	if err := a.repusher.Repush(ctx, head.forkRepo, head.srcBranch, head.upstreamBranch, head.requestedSHA); err != nil {
+		lgr.Error(fmt.Sprintf("repush failed: %s", err))
+		return
+	}
+
+	lgr.Info("repush succeeded")
+}
+
+func (a *AsnycRepusher) Close() {
+	a.mtx.Lock()
+	if a.closed {
+		a.mtx.Unlock()
+		return
+	}
+	a.closed = true
+	a.mtx.Unlock()
+
+	<-a.doneC
+}
+
 type ShellRepusher struct {
 	lgr            log.Logger
 	workdir        string
 	privateKeyFile string
 	mtx            sync.Mutex
-}
-
-type Repusher interface {
-	Repush(ctx context.Context, forkRepo, srcBranch, upstreamBranch, requestedSHA string) error
 }
 
 func NewShellRepusher(lgr log.Logger, workdir string, privateKeyFile string) *ShellRepusher {

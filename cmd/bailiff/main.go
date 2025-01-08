@@ -111,7 +111,8 @@ func main() {
 		wl := bailiff.NewTeamWhitelist(cfg.Org, cfg.AdminTeams, gh)
 
 		repusher := bailiff.NewShellRepusher(l.New("module", "shell-repusher"), workdir, envCfg.PrivateKeyFile)
-		eh := bailiff.NewEventHandler(gh, wl, cfg, workdir, l, repusher)
+		asyncRepusher := bailiff.NewAsyncRepusher(l.New("module", "async-repusher"), repusher)
+		eh := bailiff.NewEventHandler(gh, wl, cfg, workdir, l, asyncRepusher)
 		srv := bailiff.NewServer(l, envCfg.WebhookSecret, eh)
 
 		repoURL := fmt.Sprintf("git@github.com:%s/%s.git", cfg.Org, cfg.Repo)
