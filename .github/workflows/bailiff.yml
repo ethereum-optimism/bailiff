@@ -1,7 +1,10 @@
 name: bailiff
 
 on:
+  pull_request:
   push:
+    tags:
+    - '*'
 
 jobs:
   build:
